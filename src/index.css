@@ -1,0 +1,38 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Inter", sans-serif;
+  
+  --color-bg-base: #E0CCFF;
+  --color-bg-sidebar: #FFFFFF;
+  --color-bg-card: #FFFFFF;
+  --color-border-subtle: #E5E7EB;
+  --color-accent-indigo: #B180FF;
+  --color-accent-indigo-dark: #9A66FF;
+}
+
+@layer base {
+  body {
+    @apply bg-bg-base text-gray-900 font-sans antialiased selection:bg-accent-indigo/30;
+  }
+
+  /* Custom Scrollbar */
+  ::-webkit-scrollbar {
+    @apply w-1.5;
+  }
+  
+  ::-webkit-scrollbar-track {
+    @apply bg-transparent;
+  }
+  
+  ::-webkit-scrollbar-thumb {
+    @apply bg-border-subtle rounded-full hover:bg-gray-700 transition-colors;
+  }
+}
+
+.perspective-1000 { perspective: 1000px; }
+.preserve-3d { transform-style: preserve-3d; }
+.backface-hidden { backface-visibility: hidden; }
+
