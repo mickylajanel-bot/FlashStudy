@@ -3,7 +3,7 @@ import { Mail, Lock, User, ArrowRight } from 'lucide-react';
 import { motion } from 'motion/react';
 
 interface AuthScreenProps {
-  onAuth: (data: { name: string; email: string; password?: string }, type: 'login' | 'signup') => string | null;
+  onAuth: (data: { name: string; email: string; password?: string }, type: 'login' | 'signup') => Promise<string | null>;
   onToggle: () => void;
   isSignUp: boolean;
 }
@@ -13,16 +13,25 @@ export function AuthScreen({ onAuth, onToggle, isSignUp }: AuthScreenProps) {
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
-    const authError = onAuth(
-      { name: name || email.split('@')[0], email, password }, 
-      isSignUp ? 'signup' : 'login'
-    );
-    if (authError) {
-      setError(authError);
+    setIsLoading(true);
+    
+    try {
+      const authError = await onAuth(
+        { name: name || email.split('@')[0], email, password }, 
+        isSignUp ? 'signup' : 'login'
+      );
+      if (authError) {
+        setError(authError);
+      }
+    } catch (err) {
+      setError("An unexpected error occurred. Please try again.");
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -104,10 +113,23 @@ export function AuthScreen({ onAuth, onToggle, isSignUp }: AuthScreenProps) {
 
           <button
             type="submit"
-            className="w-full py-4 bg-accent-indigo hover:bg-accent-indigo-dark text-white font-semibold rounded-xl shadow-lg shadow-accent-indigo/20 transform active:scale-[0.98] transition-all flex items-center justify-center gap-2 mt-4"
+            disabled={isLoading}
+            className="w-full py-4 bg-accent-indigo hover:bg-accent-indigo-dark text-white font-semibold rounded-xl shadow-lg shadow-accent-indigo/20 transform active:scale-[0.98] transition-all flex items-center justify-center gap-2 mt-4 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {isSignUp ? "Create Account" : "Sign In"}
-            <ArrowRight className="w-5 h-5" />
+            {isLoading ? (
+              <span className="flex items-center gap-2">
+                <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                Processing...
+              </span>
+            ) : (
+              <>
+                {isSignUp ? "Create Account" : "Sign In"}
+                <ArrowRight className="w-5 h-5" />
+              </>
+            )}
           </button>
         </form>
 

@@ -12,7 +12,6 @@ interface ProfileViewProps {
   };
   onSave: (data: { name: string; bio: string; avatarColor: string; avatarImage?: string }) => void;
   onBack: () => void;
-  onUpdateStreak?: (daysAgo: number) => void;
   onDeleteAccount?: () => void;
 }
 
@@ -27,7 +26,7 @@ const COLORS = [
   'bg-orange-500'
 ];
 
-export function ProfileView({ user, onSave, onBack, onUpdateStreak, onDeleteAccount }: ProfileViewProps) {
+export function ProfileView({ user, onSave, onBack, onDeleteAccount }: ProfileViewProps) {
   const [name, setName] = useState(user.name);
   const [bio, setBio] = useState(user.bio || '');
   const [avatarColor, setAvatarColor] = useState(user.avatarColor || 'bg-accent-indigo');
@@ -46,9 +45,19 @@ export function ProfileView({ user, onSave, onBack, onUpdateStreak, onDeleteAcco
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const [isSaving, setIsSaving] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    onSave({ name, bio, avatarColor, avatarImage });
+    if (isSaving) return;
+    setIsSaving(true);
+    try {
+      await onSave({ name, bio, avatarColor, avatarImage });
+    } catch (error) {
+      console.error("Failed to save profile:", error);
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
@@ -56,7 +65,7 @@ export function ProfileView({ user, onSave, onBack, onUpdateStreak, onDeleteAcco
       <div className="flex items-center justify-between mb-6">
         <button
           onClick={onBack}
-          className="flex items-center gap-2 text-gray-500 hover:text-accent-indigo font-semibold transition-all group"
+          className="flex items-center gap-2 text-gray-500 hover:text-accent-indigo font-semibold transition-all group cursor-pointer"
         >
           <div className="p-2 rounded-lg bg-bg-sidebar border border-border-subtle group-hover:border-accent-indigo shadow-lg shadow-gray-200/20 text-gray-500 group-hover:text-accent-indigo">
             <ChevronLeft className="w-5 h-5" />
@@ -100,7 +109,7 @@ export function ProfileView({ user, onSave, onBack, onUpdateStreak, onDeleteAcco
                 key={color}
                 type="button"
                 onClick={() => setAvatarColor(color)}
-                className={`w-8 h-8 ${color} rounded-full transition-all transform hover:scale-110 active:scale-95 ${avatarColor === color ? 'ring-4 ring-offset-2 ring-accent-indigo' : ''}`}
+                className={`w-8 h-8 ${color} rounded-full transition-all transform hover:scale-110 active:scale-95 cursor-pointer ${avatarColor === color ? 'ring-4 ring-offset-2 ring-accent-indigo' : ''}`}
               />
             ))}
           </div>
@@ -150,43 +159,12 @@ export function ProfileView({ user, onSave, onBack, onUpdateStreak, onDeleteAcco
           </div>
         </div>
 
-        {/* Streak Debugging (Verification) */}
-        <div className="pt-10 mt-10 border-t border-border-subtle">
-          <div className="bg-gray-50 border border-gray-100 rounded-3xl p-6">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-8 h-8 bg-white border border-gray-200 rounded-lg flex items-center justify-center text-gray-400">
-                <Shield className="w-4 h-4" />
-              </div>
-              <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest">Logic Verification Tool</h3>
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <button
-                type="button"
-                onClick={() => onUpdateStreak && onUpdateStreak(1)}
-                className="px-4 py-2.5 bg-white border border-gray-200 rounded-xl text-[10px] font-bold text-gray-500 hover:border-accent-indigo hover:text-accent-indigo transition-all text-center uppercase tracking-wider"
-              >
-                Set Last Login: Yesterday
-              </button>
-              <button
-                type="button"
-                onClick={() => onUpdateStreak && onUpdateStreak(2)}
-                className="px-4 py-2.5 bg-white border border-gray-200 rounded-xl text-[10px] font-bold text-gray-500 hover:border-red-400 hover:text-red-500 transition-all text-center uppercase tracking-wider"
-              >
-                Set Last Login: 2 Days Ago
-              </button>
-            </div>
-            <p className="mt-3 text-[9px] text-gray-400 text-center italic">
-              * Use these to verify that the streak accurately increases or resets based on time.
-            </p>
-          </div>
-        </div>
-
         {/* Actions */}
         <div className="pt-12 flex flex-col sm:flex-row items-center justify-between gap-6 border-t border-border-subtle">
           <button
             type="button"
             onClick={() => setShowDeleteConfirm(true)}
-            className="flex items-center gap-2 text-rose-400 hover:text-rose-500 font-bold text-[10px] uppercase tracking-[0.2em] transition-colors"
+            className="flex items-center gap-2 text-rose-400 hover:text-rose-500 font-bold text-[10px] uppercase tracking-[0.2em] transition-colors cursor-pointer"
           >
             <Trash2 className="w-4 h-4" />
             Erase Identity
@@ -196,16 +174,17 @@ export function ProfileView({ user, onSave, onBack, onUpdateStreak, onDeleteAcco
             <button
               type="button"
               onClick={onBack}
-              className="px-8 py-3 text-gray-500 font-bold text-xs tracking-widest uppercase hover:text-gray-900 transition-all font-display"
+              className="px-8 py-3 text-gray-500 font-bold text-xs tracking-widest uppercase hover:text-gray-900 transition-all font-display cursor-pointer"
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="px-12 py-3 bg-accent-indigo text-white font-bold text-xs tracking-widest uppercase rounded-xl shadow-xl shadow-accent-indigo/10 hover:bg-accent-indigo-dark transition-all active:scale-[0.98] flex items-center gap-3 font-display"
+              disabled={isSaving}
+              className="px-12 py-3 bg-accent-indigo text-white font-bold text-xs tracking-widest uppercase rounded-xl shadow-xl shadow-accent-indigo/10 hover:bg-accent-indigo-dark transition-all active:scale-[0.98] flex items-center gap-3 font-display cursor-pointer disabled:opacity-50"
             >
-              <Save className="w-4 h-4" />
-              Save Profile
+              <Save className={`w-4 h-4 ${isSaving ? 'animate-spin' : ''}`} />
+              {isSaving ? 'Saving...' : 'Save Profile'}
             </button>
           </div>
         </div>

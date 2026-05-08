@@ -1,0 +1,78 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Default deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // --- Helpers ---
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return request.auth.uid == userId;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    // --- User Profile Validation ---
+    function isValidUser(data) {
+      return (!('name' in data) || (data.name is string && data.name.size() > 0 && data.name.size() <= 100))
+        && (!('email' in data) || (data.email is string && data.email.size() <= 255))
+        && (!('bio' in data) || (data.bio is string && data.bio.size() <= 500))
+        && (!('avatarColor' in data) || (data.avatarColor is string && data.avatarColor.size() <= 50))
+        && (!('activity' in data) || (data.activity is list && data.activity.size() <= 1000))
+        && (!('updatedAt' in data) || (data.updatedAt is string));
+    }
+
+    // --- Deck Validation ---
+    function isValidDeck(data) {
+      return (!('id' in data) || (data.id is string && isValidId(data.id)))
+        && (!('name' in data) || (data.name is string && data.name.size() > 0 && data.name.size() <= 200))
+        && (!('cards' in data) || (data.cards is list && data.cards.size() <= 500))
+        && (!('creatorId' in data) || (data.creatorId == request.auth.uid))
+        && (!('createdAt' in data) || (data.createdAt is number))
+        && (!('progress' in data) || (data.progress is number && data.progress >= 0 && data.progress <= 1))
+        && (!('updatedAt' in data) || (data.updatedAt is number))
+        && (!('lastStudied' in data) || (data.lastStudied is number));
+    }
+
+    // --- Collection Matches ---
+    
+    match /users/{userId} {
+      allow get: if isSignedIn() && isOwner(userId);
+      allow list: if isSignedIn() && isOwner(userId);
+      allow create: if isSignedIn() && isOwner(userId) 
+        && incoming().keys().hasAll(['name', 'email'])
+        && isValidUser(incoming());
+      allow update: if isSignedIn() && isOwner(userId) && isValidUser(incoming())
+        && (!('email' in incoming()) || (incoming().email == existing().email)); 
+      allow delete: if false; 
+
+      match /decks/{deckId} {
+        allow get: if isSignedIn() && isOwner(userId);
+        allow list: if isSignedIn() && isOwner(userId);
+        allow create: if isSignedIn() && isOwner(userId) 
+          && incoming().keys().hasAll(['id', 'name', 'cards', 'createdAt', 'creatorId'])
+          && isValidDeck(incoming());
+        allow update: if isSignedIn() && isOwner(userId) && isValidDeck(incoming())
+          && (!('id' in incoming()) || (incoming().id == existing().id))
+          && (!('createdAt' in incoming()) || (incoming().createdAt == existing().createdAt))
+          && (!('creatorId' in incoming()) || (incoming().creatorId == existing().creatorId));
+        allow delete: if isSignedIn() && isOwner(userId);
+      }
+    }
+  }
+}

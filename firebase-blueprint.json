@@ -1,0 +1,60 @@
+{
+  "entities": {
+    "User": {
+      "title": "User Profile",
+      "description": "User profile and metadata",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "email": { "type": "string" },
+        "bio": { "type": "string" },
+        "lastLogin": { "type": "string" },
+        "activity": { "type": "array", "items": { "type": "string" } },
+        "avatarColor": { "type": "string" },
+        "avatarImage": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["name", "email"]
+    },
+    "Flashcard": {
+      "title": "Flashcard",
+      "description": "A single flashcard within a deck",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "question": { "type": "string" },
+        "answer": { "type": "string" },
+        "type": { "type": "string", "enum": ["identification", "enumeration", "fill-in-the-blank", "multiple-choice", "flip-card"] },
+        "options": { "type": "array", "items": { "type": "string" } },
+        "mastered": { "type": "boolean" }
+      },
+      "required": ["id", "question", "answer", "type"]
+    },
+    "Deck": {
+      "title": "Study Deck",
+      "description": "A collection of flashcards",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "cards": { "type": "array", "items": { "$ref": "#/entities/Flashcard" } },
+        "progress": { "type": "number" },
+        "createdAt": { "type": "number" },
+        "updatedAt": { "type": "number" },
+        "lastStudied": { "type": "number" },
+        "creatorId": { "type": "string" }
+      },
+      "required": ["id", "name", "cards", "createdAt", "creatorId"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "User profile data"
+    },
+    "/users/{userId}/decks/{deckId}": {
+      "schema": "Deck",
+      "description": "Decks owned by the user"
+    }
+  }
+}

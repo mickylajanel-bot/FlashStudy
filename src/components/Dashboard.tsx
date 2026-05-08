@@ -11,7 +11,6 @@ interface DashboardProps {
   onCreate: () => void;
   user: {
     name: string;
-    streak: number;
     activity: string[];
     avatarColor?: string;
     avatarImage?: string;
@@ -68,10 +67,10 @@ export function Dashboard({ decks, onStudy, onEdit, onDelete, onCreate, user }: 
           </div>
           <button
             onClick={onCreate}
-            className="w-full sm:w-auto px-6 py-2.5 bg-accent-indigo text-white rounded-xl shadow-lg shadow-accent-indigo/20 text-sm font-medium hover:bg-accent-indigo-dark transition-all active:scale-95 flex items-center justify-center gap-2"
+            className="w-full sm:w-auto px-6 py-2.5 bg-accent-indigo text-white rounded-xl shadow-lg shadow-accent-indigo/20 text-sm font-medium hover:bg-accent-indigo-dark transition-all active:scale-95 flex items-center justify-center gap-2 cursor-pointer"
           >
             <Plus className="w-4 h-4" />
-            Study Now
+            New Deck
           </button>
         </div>
       </div>
@@ -89,17 +88,18 @@ export function Dashboard({ decks, onStudy, onEdit, onDelete, onCreate, user }: 
             <div className="absolute top-4 right-4 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity z-10">
               <button 
                 onClick={(e) => { e.stopPropagation(); onEdit(deck.id); }}
-                className="p-2 bg-bg-sidebar hover:bg-accent-indigo/20 text-gray-500 hover:text-accent-indigo rounded-lg transition-colors shadow-sm border border-border-subtle"
+                className="p-2 bg-bg-sidebar hover:bg-accent-indigo/20 text-gray-500 hover:text-accent-indigo rounded-lg transition-colors shadow-sm border border-border-subtle cursor-pointer"
               >
                 <Edit2 className="w-4 h-4" />
               </button>
               <button 
                 onClick={(e) => { e.stopPropagation(); onDelete(deck.id); }}
-                className="p-2 bg-bg-sidebar hover:bg-red-500/20 text-gray-500 hover:text-red-400 rounded-lg transition-colors shadow-sm border border-border-subtle"
+                className="p-2 bg-bg-sidebar hover:bg-red-500/20 text-gray-500 hover:text-red-400 rounded-lg transition-colors shadow-sm border border-border-subtle cursor-pointer"
               >
                 <Trash2 className="w-4 h-4" />
               </button>
             </div>
+
 
             <div className="mb-6">
               <div className="text-xs font-bold text-accent-indigo uppercase tracking-widest mb-2">Collection</div>
