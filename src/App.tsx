@@ -16,7 +16,8 @@ import {
   createUserWithEmailAndPassword, 
   signInWithEmailAndPassword, 
   signOut, 
-  onAuthStateChanged 
+  onAuthStateChanged,
+  updateProfile as updateAuthProfile
 } from 'firebase/auth';
 import { 
   doc, 
@@ -25,7 +26,8 @@ import {
   onSnapshot, 
   collection, 
   deleteDoc, 
-  updateDoc 
+  updateDoc,
+  serverTimestamp 
 } from 'firebase/firestore';
 import { db } from './lib/firebase';
 
@@ -86,7 +88,7 @@ export default function App() {
     avatarColor?: string;
     avatarImage?: string;
   }>({ 
-    name: 'User', 
+    name: '', 
     email: '', 
     lastLogin: '', 
     activity: [], 
@@ -94,18 +96,28 @@ export default function App() {
     avatarColor: 'bg-accent-indigo' 
   });
 
+  const [isLoadingProfile, setIsLoadingProfile] = useState(true);
+
   // Listener for Firebase Auth state changes
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
       if (firebaseUser) {
         setIsAuthenticated(true);
+        // Initial user state from Auth
+        const initialName = firebaseUser.displayName || firebaseUser.email?.split('@')[0] || 'Scholar';
+        setUser(prev => ({
+          ...prev,
+          name: prev.name && prev.name !== 'User' ? prev.name : initialName,
+          email: firebaseUser.email || prev.email
+        }));
+        
         if (view === 'auth' || view === 'signup') {
           setView('dashboard');
         }
       } else {
         setIsAuthenticated(false);
         setUser({ 
-          name: 'User', 
+          name: '', 
           email: '', 
           lastLogin: '', 
           activity: [], 
@@ -113,26 +125,36 @@ export default function App() {
           avatarColor: 'bg-accent-indigo' 
         });
         setDecks([]);
+        setIsLoadingProfile(false);
         if (view !== 'signup') setView('auth');
       }
     });
 
     return () => unsubscribe();
-  }, []); // Remove "view" dependency to prevent unnecessary resets
+  }, []);
 
   // Real-time synchronization for profile
   useEffect(() => {
-    if (!isAuthenticated || !auth.currentUser) return;
+    if (!isAuthenticated || !auth.currentUser) {
+      setIsLoadingProfile(false);
+      return;
+    }
 
     const userId = auth.currentUser.uid;
     const profileRef = doc(db, 'users', userId);
     
+    setIsLoadingProfile(true);
     const unsubscribe = onSnapshot(profileRef, (docSnap) => {
       if (docSnap.exists()) {
         const data = docSnap.data();
+        const firebaseUser = auth.currentUser;
+        
+        // Use data name, fallback to auth displayName, then fallback to email prefix
+        const finalName = data.name || firebaseUser?.displayName || firebaseUser?.email?.split('@')[0] || 'Scholar';
+        
         setUser({
-          name: data.name,
-          email: data.email,
+          name: finalName,
+          email: data.email || firebaseUser?.email || '',
           lastLogin: data.lastLogin || '',
           activity: data.activity || [],
           bio: data.bio || '',
@@ -140,7 +162,9 @@ export default function App() {
           avatarImage: data.avatarImage
         });
       }
+      setIsLoadingProfile(false);
     }, (error) => {
+      setIsLoadingProfile(false);
       handleFirestoreError(error, OperationType.GET, `users/${userId}`);
     });
 
@@ -179,6 +203,8 @@ export default function App() {
         try {
           const res = await createUserWithEmailAndPassword(auth, userData.email, userData.password);
           firebaseUser = res.user;
+          // Set display name in Auth
+          await updateAuthProfile(firebaseUser, { displayName: userData.name });
         } catch (error: any) {
           if (error.code === 'auth/email-already-in-use') {
             return "User already exists. Please sign in.";
@@ -221,14 +247,34 @@ export default function App() {
           const profileSnap = await getDoc(profileRef);
           
           if (profileSnap.exists()) {
-            const currentActivity = profileSnap.data().activity || [];
+            const data = profileSnap.data();
+            const currentActivity = data.activity || [];
             const updatedActivity = currentActivity.includes(today) ? currentActivity : [...currentActivity, today];
             
-            await updateDoc(profileRef, {
+            const updatePayload: any = {
               lastLogin: today,
               activity: updatedActivity,
               updatedAt: Date.now().toString()
-            });
+            };
+
+            // If profile name is still generic "User" or empty, try to improve it
+            if (!data.name || data.name === 'User') {
+              updatePayload.name = firebaseUser.displayName || firebaseUser.email?.split('@')[0] || data.name || 'Scholar';
+            }
+            
+            await updateDoc(profileRef, updatePayload);
+          } else {
+            // Auto-create missing profile
+            const newUserProfile = {
+              name: firebaseUser.displayName || firebaseUser.email?.split('@')[0] || 'Scholar',
+              email: firebaseUser.email || '',
+              lastLogin: today,
+              activity: [today],
+              bio: '',
+              avatarColor: 'bg-accent-indigo',
+              updatedAt: Date.now().toString()
+            };
+            await setDoc(profileRef, newUserProfile);
           }
         } catch (error) {
           handleFirestoreError(error, OperationType.WRITE, `users/${firebaseUser.uid}`);
@@ -533,7 +579,6 @@ export default function App() {
                       deck={currentDeck} 
                       onSave={currentDeck ? updateDeck : addDeck} 
                       onCancel={() => setView('dashboard')} 
-                      onDelete={currentDeck ? deleteDeck : undefined}
                     />
                   )}
                   {view === 'profile' && (

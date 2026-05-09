@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, FormEvent } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { Plus, X, Trash2, Save, ChevronLeft, Type, Hash, FormInput, ListFilter, Undo2, Redo2, RotateCcw } from 'lucide-react';
 import { Deck, Flashcard, CardType } from '../types';
 import { motion, AnimatePresence } from 'motion/react';
@@ -7,7 +7,6 @@ interface DeckEditorProps {
   deck: Deck | null;
   onSave: (deck: Deck) => void;
   onCancel: () => void;
-  onDelete?: (id: string) => void;
 }
 
 const CARD_TYPES: { type: CardType; label: string; icon: any }[] = [
@@ -18,9 +17,8 @@ const CARD_TYPES: { type: CardType; label: string; icon: any }[] = [
   { type: 'multiple-choice', label: 'Multiple Choice', icon: ListFilter },
 ];
 
-export function DeckEditor({ deck, onSave, onCancel, onDelete }: DeckEditorProps) {
+export function DeckEditor({ deck, onSave, onCancel }: DeckEditorProps) {
   const [name, setName] = useState(deck?.name || '');
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   
   // Undo/Redo State Pattern
   const [history, setHistory] = useState<{
@@ -109,7 +107,7 @@ export function DeckEditor({ deck, onSave, onCancel, onDelete }: DeckEditorProps
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
 
-  const handleSave = async (e?: FormEvent) => {
+  const handleSave = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     if (isSaving) return;
     if (!name.trim()) {
@@ -394,15 +392,6 @@ export function DeckEditor({ deck, onSave, onCancel, onDelete }: DeckEditorProps
             </AnimatePresence>
 
             <div className="flex justify-end gap-6">
-              {deck && onDelete && (
-                <button
-                  type="button"
-                  onClick={() => setShowDeleteConfirm(true)}
-                  className="px-8 py-3 text-red-500 font-bold text-xs tracking-widest uppercase hover:text-red-600 transition-all cursor-pointer mr-auto"
-                >
-                  Delete Collection
-                </button>
-              )}
               <button
                 type="button"
                 onClick={onCancel}
@@ -422,46 +411,6 @@ export function DeckEditor({ deck, onSave, onCancel, onDelete }: DeckEditorProps
           </div>
         </div>
       </form>
-
-      {/* Delete Confirmation Modal */}
-      <AnimatePresence>
-        {showDeleteConfirm && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/40 backdrop-blur-sm">
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.9, y: 20 }}
-              className="w-full max-w-sm bg-white rounded-[32px] p-8 shadow-2xl overflow-hidden relative"
-            >
-              <div className="text-center space-y-4">
-                <div className="w-16 h-16 bg-red-50 rounded-2xl flex items-center justify-center mx-auto text-red-500">
-                  <Trash2 className="w-8 h-8" />
-                </div>
-                <div className="space-y-1">
-                  <h3 className="text-xl font-bold text-gray-900">Delete Collection?</h3>
-                  <p className="text-gray-500 text-sm">
-                    This will permanently remove "{name}" and all its flashcards. This action is irreversible.
-                  </p>
-                </div>
-                <div className="pt-4 flex flex-col gap-2">
-                  <button
-                    onClick={() => deck && onDelete && onDelete(deck.id)}
-                    className="w-full py-4 bg-red-500 text-white font-bold rounded-xl shadow-lg shadow-red-500/20 hover:bg-red-600 transition-all active:scale-95 text-xs uppercase tracking-widest"
-                  >
-                    Yes, Delete Permanentely
-                  </button>
-                  <button
-                    onClick={() => setShowDeleteConfirm(false)}
-                    className="w-full py-4 text-gray-400 font-bold hover:text-gray-900 transition-all text-xs uppercase tracking-widest"
-                  >
-                    Keep Collection
-                  </button>
-                </div>
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
     </div>
 
 
